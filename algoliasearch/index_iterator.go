@@ -2,25 +2,25 @@ package algoliasearch
 
 import "fmt"
 
-type IndexIterator struct {
+type indexIterator struct {
 	cursor string
-	index  *Index
+	index  Index
 	page   BrowseRes
 	params map[string]interface{}
 	pos    int64
 }
 
-func NewIndexIterator(index *Index, params map[string]interface{}) (it IndexIterator, err error) {
-	it = IndexIterator{
+func NewIndexIterator(index Index, params map[string]interface{}) (it IndexIterator, err error) {
+	it = &indexIterator{
 		index:  index,
 		params: duplicateMap(params),
 		pos:    0,
 	}
-	err = it.loadNextPage()
+	err = it.(*indexIterator).loadNextPage()
 	return
 }
 
-func (it *IndexIterator) Next() (res map[string]interface{}, err error) {
+func (it *indexIterator) Next() (res map[string]interface{}, err error) {
 	// Abort if the user call `Next()` on a IndexIterator that has been
 	// initialized without being able to load the first page.
 	if it.page.NbHits == 0 {
@@ -41,7 +41,7 @@ func (it *IndexIterator) Next() (res map[string]interface{}, err error) {
 	return
 }
 
-func (it *IndexIterator) loadNextPage() (err error) {
+func (it *indexIterator) loadNextPage() (err error) {
 	// Update the cursor for each new page except for the first one
 	if it.cursor != "" {
 		it.params["cursor"] = it.cursor
