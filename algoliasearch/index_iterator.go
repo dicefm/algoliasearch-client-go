@@ -6,17 +6,17 @@ import (
 
 // IndexIterator is used to iterate over indices when using `Browse`-like
 // functions.
-type IndexIterator struct {
+type indexIterator struct {
 	answer interface{}
-	index  *Index
+	index  Index
 	params interface{}
 	pos    int
 }
 
 // NewIndexIterator instantiates an new IndexIterator on the `index` given the
 // `params` parameters. It also initializes it to the first page of results.
-func NewIndexIterator(index *Index, params interface{}, cursor string) (*IndexIterator, error) {
-	it := &IndexIterator{
+func NewIndexIterator(index *index, params interface{}, cursor string) (IndexIterator, error) {
+	it := &indexIterator{
 		answer: map[string]interface{}{"cursor": cursor},
 		index:  index,
 		params: params,
@@ -27,7 +27,7 @@ func NewIndexIterator(index *Index, params interface{}, cursor string) (*IndexIt
 }
 
 // Next iterates to the next result and move the cursor.
-func (it *IndexIterator) Next() (interface{}, error) {
+func (it *indexIterator) Next() (interface{}, error) {
 	var err error
 
 	for err == nil {
@@ -51,7 +51,7 @@ func (it *IndexIterator) Next() (interface{}, error) {
 
 // GetCursor returns the current underlying cursor. The returned boolean is set
 // to `false` if the end of the index has been reached.
-func (it *IndexIterator) GetCursor() (string, bool) {
+func (it *indexIterator) GetCursor() (string, bool) {
 	if cursor, ok := it.answer.(map[string]interface{})["cursor"]; cursor != nil {
 		return cursor.(string), ok
 	} else {
@@ -60,7 +60,7 @@ func (it *IndexIterator) GetCursor() (string, bool) {
 }
 
 // loadNextPage loads the next page of results and resets the cursor position.
-func (it *IndexIterator) loadNextPage() error {
+func (it *indexIterator) loadNextPage() error {
 	it.pos = 0
 	cursor, _ := it.GetCursor()
 	answer, err := it.index.BrowseFrom(it.params, cursor)

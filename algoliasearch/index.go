@@ -10,8 +10,8 @@ import (
 )
 
 // Index is the structure used to manipulate an Algolia index.
-type Index struct {
-	client      *Client
+type index struct {
+	client      *client
 	name        string
 	nameEncoded string
 }
@@ -19,8 +19,8 @@ type Index struct {
 // NewIndex instantiates a new Index. The `name` parameter corresponds to the
 // Algolia index's name while the `client` is used to connect to the Algolia
 // API.
-func NewIndex(name string, client *Client) *Index {
-	return &Index{
+func NewIndex(name string, client *client) Index {
+	return &index{
 		client:      client,
 		name:        name,
 		nameEncoded: client.transport.urlEncode(name),
@@ -28,12 +28,12 @@ func NewIndex(name string, client *Client) *Index {
 }
 
 // Delete deletes the Algolia index.
-func (i *Index) Delete() (interface{}, error) {
+func (i *index) Delete() (interface{}, error) {
 	return i.client.transport.request("DELETE", "/1/indexes/"+i.nameEncoded, nil, write)
 }
 
 // Clear removes every record from the Algolia index.
-func (i *Index) Clear() (interface{}, error) {
+func (i *index) Clear() (interface{}, error) {
 	return i.client.transport.request("POST", "/1/indexes/"+i.nameEncoded+"/clear", nil, write)
 }
 
@@ -42,7 +42,7 @@ func (i *Index) Clear() (interface{}, error) {
 // while the `attribute` (optional) is a string containing comma-separated
 // attributes that you want to retrieve. If this parameter is omitted, all the
 // attributes are returned.
-func (i *Index) GetObject(objectID string, attribute ...string) (interface{}, error) {
+func (i *index) GetObject(objectID string, attribute ...string) (interface{}, error) {
 	v := url.Values{}
 	if len(attribute) > 1 {
 		return nil, errors.New("Too many parameters")
@@ -54,7 +54,7 @@ func (i *Index) GetObject(objectID string, attribute ...string) (interface{}, er
 }
 
 // GetObjects retrieves the objects identified by the given `objectIDs`.
-func (i *Index) GetObjects(objectIDs ...string) (interface{}, error) {
+func (i *index) GetObjects(objectIDs ...string) (interface{}, error) {
 	requests := make([]interface{}, len(objectIDs))
 	for j, id := range objectIDs {
 		requests[j] = map[string]interface{}{
@@ -72,23 +72,23 @@ func (i *Index) GetObjects(objectIDs ...string) (interface{}, error) {
 
 // DeleteObject deletes an object from the index that is uniquely identified by
 // its `objectID`.
-func (i *Index) DeleteObject(objectID string) (interface{}, error) {
+func (i *index) DeleteObject(objectID string) (interface{}, error) {
 	return i.client.transport.request("DELETE", "/1/indexes/"+i.nameEncoded+"/"+i.client.transport.urlEncode(objectID), nil, write)
 }
 
 // GetSettings retrieves the index settings.
-func (i *Index) GetSettings() (interface{}, error) {
+func (i *index) GetSettings() (interface{}, error) {
 	return i.client.transport.request("GET", "/1/indexes/"+i.nameEncoded+"/settings?getVersion=2", nil, read)
 }
 
 // SetSettings changes the index settings.
-func (i *Index) SetSettings(settings interface{}) (interface{}, error) {
+func (i *index) SetSettings(settings interface{}) (interface{}, error) {
 	return i.client.transport.request("PUT", "/1/indexes/"+i.nameEncoded+"/settings", settings, write)
 }
 
 // WaitTask waits for the given task to be completed. The interface given is
 // typically the returned value of a call to `AddObject`.
-func (i *Index) WaitTask(task interface{}) (interface{}, error) {
+func (i *index) WaitTask(task interface{}) (interface{}, error) {
 	if reflect.TypeOf(task).Name() == "float64" {
 		return i.WaitTaskWithInit(task.(float64), 100)
 	}
@@ -98,7 +98,7 @@ func (i *Index) WaitTask(task interface{}) (interface{}, error) {
 // WaitTaskWithInit waits for the task with the `taskID` to be completed. The
 // `timeToWait` parameter controls the first duration, in ms, to use between
 // each retry (it will be exponentiated up to 10s).
-func (i *Index) WaitTaskWithInit(taskID float64, timeToWait float64) (interface{}, error) {
+func (i *index) WaitTaskWithInit(taskID float64, timeToWait float64) (interface{}, error) {
 	var err error
 	var status interface{}
 
@@ -122,29 +122,29 @@ func (i *Index) WaitTaskWithInit(taskID float64, timeToWait float64) (interface{
 }
 
 // ListKeys lists all the keys that can access the index.
-func (i *Index) ListKeys() (interface{}, error) {
+func (i *index) ListKeys() (interface{}, error) {
 	return i.client.transport.request("GET", "/1/indexes/"+i.nameEncoded+"/keys", nil, read)
 }
 
 // GetKey returns the ACL and the validity of the given `key` API key for the
 // current index.
-func (i *Index) GetKey(key string) (interface{}, error) {
+func (i *index) GetKey(key string) (interface{}, error) {
 	return i.client.transport.request("GET", "/1/indexes/"+i.nameEncoded+"/keys/"+key, nil, read)
 }
 
 // DeleteKey deletes the `key` API key of the current index.
-func (i *Index) DeleteKey(key string) (interface{}, error) {
+func (i *index) DeleteKey(key string) (interface{}, error) {
 	return i.client.transport.request("DELETE", "/1/indexes/"+i.nameEncoded+"/keys/"+key, nil, write)
 }
 
 // AddObject adds a new object to the index.
-func (i *Index) AddObject(object interface{}) (interface{}, error) {
+func (i *index) AddObject(object interface{}) (interface{}, error) {
 	return i.client.transport.request("POST", "/1/indexes/"+i.nameEncoded, object, write)
 }
 
 // UpdateObject modifies the record in the Algolia index matching the one given
 // in parameter, according to its `objectID` value.
-func (i *Index) UpdateObject(object interface{}) (interface{}, error) {
+func (i *index) UpdateObject(object interface{}) (interface{}, error) {
 	id := object.(map[string]interface{})["objectID"]
 	path := "/1/indexes/" + i.nameEncoded + "/" + i.client.transport.urlEncode(id.(string))
 	return i.client.transport.request("PUT", path, object, write)
@@ -154,32 +154,32 @@ func (i *Index) UpdateObject(object interface{}) (interface{}, error) {
 // one given in parameter, according to its `objectID` value. However, the
 // record is only partially updated i.e. only the specified attributes will be
 // updated.
-func (i *Index) PartialUpdateObject(object interface{}) (interface{}, error) {
+func (i *index) PartialUpdateObject(object interface{}) (interface{}, error) {
 	id := object.(map[string]interface{})["objectID"]
 	path := "/1/indexes/" + i.nameEncoded + "/" + i.client.transport.urlEncode(id.(string)) + "/partial"
 	return i.client.transport.request("POST", path, object, write)
 }
 
 // AddObject adds several objects to the index.
-func (i *Index) AddObjects(objects interface{}) (interface{}, error) {
+func (i *index) AddObjects(objects interface{}) (interface{}, error) {
 	return i.sameBatch(objects, "addObject")
 }
 
 // UpdateObjects adds or updates several objects at the same time, according to
 // their respective `objectID` attribute.
-func (i *Index) UpdateObjects(objects interface{}) (interface{}, error) {
+func (i *index) UpdateObjects(objects interface{}) (interface{}, error) {
 	return i.sameBatch(objects, "updateObject")
 }
 
 // PartialUpdateObjects partially updates several objects at the same time,
 // according to their respective `objectID` attribute.
-func (i *Index) PartialUpdateObjects(objects interface{}) (interface{}, error) {
+func (i *index) PartialUpdateObjects(objects interface{}) (interface{}, error) {
 	return i.sameBatch(objects, "partialUpdateObject")
 }
 
 // DeleteObjects deletes several objects at the same time, according to their
 // respective `objectID` attribute.
-func (i *Index) DeleteObjects(objectIDs []string) (interface{}, error) {
+func (i *index) DeleteObjects(objectIDs []string) (interface{}, error) {
 	objects := make([]interface{}, len(objectIDs))
 	for j, id := range objectIDs {
 		objects[j] = map[string]interface{}{
@@ -192,7 +192,7 @@ func (i *Index) DeleteObjects(objectIDs []string) (interface{}, error) {
 
 // DeleteByQuery deletes all the records that are found after performing the
 // `query` search query, following the `params` parameters.
-func (i *Index) DeleteByQuery(query string, params map[string]interface{}) (interface{}, error) {
+func (i *index) DeleteByQuery(query string, params map[string]interface{}) (interface{}, error) {
 	if params == nil {
 		params = make(map[string]interface{})
 	}
@@ -233,7 +233,7 @@ func (i *Index) DeleteByQuery(query string, params map[string]interface{}) (inte
 
 // Batch performs each action contained in the `actions` parameter to their
 // respective object from the `objects` parameter.
-func (i *Index) Batch(objects interface{}, actions []string) (interface{}, error) {
+func (i *index) Batch(objects interface{}, actions []string) (interface{}, error) {
 	array := objects.([]interface{})
 	queries := make([]map[string]interface{}, len(array))
 
@@ -248,7 +248,7 @@ func (i *Index) Batch(objects interface{}, actions []string) (interface{}, error
 }
 
 // CustomBatch actually performs the batch request of all `queries`.
-func (i *Index) CustomBatch(queries interface{}) (interface{}, error) {
+func (i *index) CustomBatch(queries interface{}) (interface{}, error) {
 	request := map[string]interface{}{
 		"requests": queries,
 	}
@@ -258,13 +258,13 @@ func (i *Index) CustomBatch(queries interface{}) (interface{}, error) {
 
 // Browse returns `hitsPerPage` results from the `page` page.
 // Deprecated: Use `BrowseFrom` or `BrowseAll` instead.
-func (i *Index) Browse(page, hitsPerPage int) (interface{}, error) {
+func (i *index) Browse(page, hitsPerPage int) (interface{}, error) {
 	return i.client.transport.request("GET", "/1/indexes/"+i.nameEncoded+"/browse?page="+strconv.Itoa(page)+"&hitsPerPage="+strconv.Itoa(hitsPerPage), nil, read)
 }
 
 // BrowseFrom browses the results according to the given `params` parameters at
 // the position defined by the `cursor` parameter.
-func (i *Index) BrowseFrom(params interface{}, cursor string) (interface{}, error) {
+func (i *index) BrowseFrom(params interface{}, cursor string) (interface{}, error) {
 	if len(cursor) != 0 {
 		cursor = "&cursor=" + i.client.transport.urlEncode(cursor)
 	} else {
@@ -276,13 +276,13 @@ func (i *Index) BrowseFrom(params interface{}, cursor string) (interface{}, erro
 // BrowseAll browses the results according to the given `params` parameter
 // starting at the first results. It returns an `IndexIterator` that is used to
 // iterate over the results.
-func (i *Index) BrowseAll(params interface{}) (*IndexIterator, error) {
+func (i *index) BrowseAll(params interface{}) (IndexIterator, error) {
 	return NewIndexIterator(i, params, "")
 }
 
 // Search performs a search query according to the `query` search query and the
 // given `params` parameters.
-func (i *Index) Search(query string, params interface{}) (interface{}, error) {
+func (i *index) Search(query string, params interface{}) (interface{}, error) {
 	if params == nil {
 		params = make(map[string]interface{})
 	}
@@ -296,12 +296,12 @@ func (i *Index) Search(query string, params interface{}) (interface{}, error) {
 }
 
 // Copy copies the index into a new one called `name`.
-func (i *Index) Copy(name string) (interface{}, error) {
+func (i *index) Copy(name string) (interface{}, error) {
 	return i.operation(name, "copy")
 }
 
 // Move renames the index into `name`.
-func (i *Index) Move(name string) (interface{}, error) {
+func (i *index) Move(name string) (interface{}, error) {
 	return i.operation(name, "move")
 }
 
@@ -310,7 +310,7 @@ func (i *Index) Move(name string) (interface{}, error) {
 // (0 for unlimited), `maxQueriesPerIPPerHour` is the maximum number of calls
 // authorized per hour and `maxHitsPerQuery` controls the number of results
 // that each query could return at most.
-func (i *Index) AddKey(acl []string, validity int, maxQueriesPerIPPerHour int, maxHitsPerQuery int) (interface{}, error) {
+func (i *index) AddKey(acl []string, validity int, maxQueriesPerIPPerHour int, maxHitsPerQuery int) (interface{}, error) {
 	body := map[string]interface{}{
 		"acl":                    acl,
 		"maxHitsPerQuery":        maxHitsPerQuery,
@@ -324,12 +324,12 @@ func (i *Index) AddKey(acl []string, validity int, maxQueriesPerIPPerHour int, m
 // AddKeyWithParam registers a new API for the index. The `params` parameter is
 // a `map[string]interface{}` of all the parameters given to the `AddKey`
 // function.
-func (i *Index) AddKeyWithParam(params interface{}) (interface{}, error) {
+func (i *index) AddKeyWithParam(params interface{}) (interface{}, error) {
 	return i.client.transport.request("POST", "/1/indexes/"+i.nameEncoded+"/keys", params, write)
 }
 
 // UpdateKey updates the `key` API key according to the other given parameters.
-func (i *Index) UpdateKey(key string, acl []string, validity int, maxQueriesPerIPPerHour int, maxHitsPerQuery int) (interface{}, error) {
+func (i *index) UpdateKey(key string, acl []string, validity int, maxQueriesPerIPPerHour int, maxHitsPerQuery int) (interface{}, error) {
 	body := map[string]interface{}{
 		"acl":                    acl,
 		"maxHitsPerQuery":        maxHitsPerQuery,
@@ -343,20 +343,20 @@ func (i *Index) UpdateKey(key string, acl []string, validity int, maxQueriesPerI
 // UpdateKeyWithParam updates the `key` API key according to the `params`
 // parameters which is a `map[string]interface{}` of all the parameters given
 // to the `UpdateKey` function.
-func (i *Index) UpdateKeyWithParam(key string, params interface{}) (interface{}, error) {
+func (i *index) UpdateKeyWithParam(key string, params interface{}) (interface{}, error) {
 	return i.client.transport.request("PUT", "/1/indexes/"+i.nameEncoded+"/keys/"+key, params, write)
 }
 
 // getStatus returns the status of a task given its ID `taskID`. The returned
 // interface is the JSON-encoded answered from the API server. The error is
 // non-nil if the REST API has returned an error.
-func (i *Index) getStatus(taskID float64) (interface{}, error) {
+func (i *index) getStatus(taskID float64) (interface{}, error) {
 	return i.client.transport.request("GET", "/1/indexes/"+i.nameEncoded+"/task/"+strconv.FormatFloat(taskID, 'f', -1, 64), nil, read)
 }
 
 // sameBatch performs the `action` command on all the objects specified in the
 // `objects` parameter.
-func (i *Index) sameBatch(objects interface{}, action string) (interface{}, error) {
+func (i *index) sameBatch(objects interface{}, action string) (interface{}, error) {
 	method := make([]string, len(objects.([]interface{})))
 	for i := range method {
 		method[i] = action
@@ -368,7 +368,7 @@ func (i *Index) sameBatch(objects interface{}, action string) (interface{}, erro
 // operation performs the `op` operation on the underlying index and names the
 // resulting new index `name`. The `op` operation can be either `copy` or
 // `move`.
-func (i *Index) operation(name, op string) (interface{}, error) {
+func (i *index) operation(name, op string) (interface{}, error) {
 	body := map[string]interface{}{
 		"destination": name,
 		"operation":   op,
@@ -382,7 +382,7 @@ func (i *Index) operation(name, op string) (interface{}, error) {
 // specifies how much synonym sets will be returned by page.
 // An error is returned if the underlying HTTP call does not yield a 200
 // status code.
-func (i *Index) SearchSynonyms(query string, types []string, page, hitsPerPage int) (interface{}, error) {
+func (i *index) SearchSynonyms(query string, types []string, page, hitsPerPage int) (interface{}, error) {
 	body := map[string]interface{}{
 		"query":       query,
 		"type":        strings.Join(types, ","),
@@ -396,7 +396,7 @@ func (i *Index) SearchSynonyms(query string, types []string, page, hitsPerPage i
 // GetSynonym retrieves the synonym identified by `objectID`.
 // An error is returned if the underlying HTTP call does not yield a 200
 // status code.
-func (i *Index) GetSynonym(objectID string) (interface{}, error) {
+func (i *index) GetSynonym(objectID string) (interface{}, error) {
 	encodedID := i.client.transport.urlEncode(objectID)
 	return i.client.transport.request("GET", "/1/indexes/"+i.nameEncoded+"/synonyms/"+encodedID, nil, read)
 }
@@ -406,7 +406,7 @@ func (i *Index) GetSynonym(objectID string) (interface{}, error) {
 // with `forwardToSlaves`.
 // An error is returned if the underlying HTTP call does not yield a 200
 // status code.
-func (i *Index) DeleteSynonym(objectID string, forwardToSlaves bool) (interface{}, error) {
+func (i *index) DeleteSynonym(objectID string, forwardToSlaves bool) (interface{}, error) {
 	encodedID := i.client.transport.urlEncode(objectID)
 	params := i.client.EncodeParams(map[string]interface{}{
 		"forwardToSlaves": strconv.FormatBool(forwardToSlaves),
@@ -419,7 +419,7 @@ func (i *Index) DeleteSynonym(objectID string, forwardToSlaves bool) (interface{
 // be forwarded to the index slaves of the index using `forwardToSlaves`.
 // An error is returned if the underlying HTTP call does not yield a 200
 // status code.
-func (i *Index) ClearSynonyms(forwardToSlaves bool) (interface{}, error) {
+func (i *index) ClearSynonyms(forwardToSlaves bool) (interface{}, error) {
 	params := i.client.EncodeParams(map[string]interface{}{
 		"forwardToSlaves": strconv.FormatBool(forwardToSlaves),
 	})
@@ -433,7 +433,7 @@ func (i *Index) ClearSynonyms(forwardToSlaves bool) (interface{}, error) {
 // with `forwardToSlaves`
 // An error is returned if the underlying HTTP call does not yield a 200
 // status code.
-func (i *Index) BatchSynonyms(synonyms []interface{}, replaceExistingSynonyms, forwardToSlaves bool) (interface{}, error) {
+func (i *index) BatchSynonyms(synonyms []interface{}, replaceExistingSynonyms, forwardToSlaves bool) (interface{}, error) {
 	params := i.client.EncodeParams(map[string]interface{}{
 		"forwardToSlaves":         strconv.FormatBool(forwardToSlaves),
 		"replaceExistingSynonyms": strconv.FormatBool(replaceExistingSynonyms),
@@ -446,7 +446,7 @@ func (i *Index) BatchSynonyms(synonyms []interface{}, replaceExistingSynonyms, f
 // This addition can be forwarded to the index slaves using `forwardToSlaves`.
 // An error is returned if the underlying HTTP call does not yield a 200
 // status code.
-func (i *Index) SaveSynonym(objectID string, synonym interface{}, forwardToSlaves bool) (interface{}, error) {
+func (i *index) SaveSynonym(objectID string, synonym interface{}, forwardToSlaves bool) (interface{}, error) {
 	encodedID := i.client.EncodeParams(objectID)
 	params := i.client.EncodeParams(map[string]interface{}{
 		"forwardToSlaves": strconv.FormatBool(forwardToSlaves),

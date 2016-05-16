@@ -18,22 +18,20 @@ func safeName(name string) string {
 	return name + "_travis-" + buildId
 }
 
-func initTest(t *testing.T) (*Client, *Index) {
+func initTest(t *testing.T) (*client, *index) {
 	appID, haveAppID := syscall.Getenv("ALGOLIA_APPLICATION_ID")
 	apiKey, haveApiKey := syscall.Getenv("ALGOLIA_API_KEY")
 	if !haveApiKey || !haveAppID {
 		t.Fatalf("Need ALGOLIA_APPLICATION_ID and ALGOLIA_API_KEY")
 	}
-	client := NewClient(appID, apiKey)
-	client.SetTimeout(1000, 10000)
 	hosts := make([]string, 3)
 	hosts[0] = appID + "-1.algolia.net"
 	hosts[1] = appID + "-2.algolia.net"
 	hosts[2] = appID + "-3.algolia.net"
-	client = NewClientWithHosts(appID, apiKey, hosts)
-	index := client.InitIndex(safeName("àlgol?à-go"))
+	c := NewClientWithHosts(appID, apiKey, hosts).(*client)
+	i := c.InitIndex(safeName("àlgol?à-go")).(*index)
 
-	return client, index
+	return c, i
 }
 
 func shouldHave(json interface{}, attr, msg string, t *testing.T) {
